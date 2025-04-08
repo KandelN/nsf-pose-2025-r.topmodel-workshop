@@ -1,0 +1,72 @@
+
+## USGS Potential Evapotranspiration Data
+
+The USGS daily global potential evapotranspiration (PET) [data](https://earlywarning.usgs.gov/fews/product/81) is estimated using climate parameters extracted from the Global Data Assimilation System (GDAS), which is run every six hours by [the National Oceanic and Atmospheric Administration (NOAA)](https://www.noaa.gov/). Its data resolution is 1° by 1°, and data availability starts from January 1, 2001. However, its web interface is limited to single-year, single-month, or single-day downloads.  
+The unit of this data product is $0.01 \, \text{mm}$, meaning a cell value of 1 indicates a daily potential evapotranspiration of $0.01 \, \text{mm}$.
+
+## Downloading PET Data
+
+Direct downloads are available from the following directories:
+
+- [Daily directory](https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/daily/)
+- [Monthly directory](https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/monthly/)
+- [Yearly directory](https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/yearly/)
+
+Using [`fetch_usgs_pet.py`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/fetch_usgs_pet.py), you can download PET data:
+
+```bash
+fetch_usgs_pet.py 2010-01-01 2020-12-31
+```
+
+## Extracting Data for the Watershed
+
+From the `epsg4326` location, import all the files using [`import_usgs_pet.sh`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/import_usgs_pet.sh).
+
+Find the centroid of the watershed:
+
+```bash
+v.to.db map=watershed option=coor columns=x,y
+v.to.db map=watershed option=area columns=area_km2 units=kilometers
+v.db.select map=watershed
+```
+
+The major centroid is at $-83.6274554161366, 34.6959628598932$.
+
+Extract PET data at the centroid:
+
+```bash
+for i in $(g.list type=raster pattern=et*); do
+    r.what map=$i coordinates=-83.6274554161366,34.6959628598932 | sed 's/.*|/0.00001*/' | bc
+done > usgs_pet.txt
+```
+
+## Creating Input Files
+
+Replace NCDC EVAP data in `input_evap.txt` with this data and create a new `input_pet.txt` file:
+
+```bash
+head -9 input_evap.txt > input_pet.txt
+tail +10 input_evap.txt | sed 's/ .*//' > ncdc_prcp.txt
+tail +10 input_evap.txt | sed 's/.* //' > ncdc_evap.txt
+paste ncdc_prcp.txt usgs_pet.txt >> input_pet.txt
+```
+
+## Comparing EVAP and PET Data
+
+In R, compare EVAP and PET data:
+
+```r
+evap <- read.table("ncdc_evap.txt")[[1]]
+pet <- read.table("usgs_pet.txt")[[1]]
+boxplot(data.frame(evap, pet))
+
+plot(evap, type = "l")
+lines(pet, col = "red")
+legend("topleft", legend = c("evap", "pet"), lty = c(1, 1), col = c("black", "red"), bty = "n")
+```
+
+![](images/evap-pet-boxplots.png){width="75%" fig-align="center"}
+
+![](images/evap-pet-time-series.png){width="75%" fig-align="center"}
+
+Overall, EVAP data is greater than PET data.
