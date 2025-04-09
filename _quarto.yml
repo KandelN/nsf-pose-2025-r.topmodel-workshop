@@ -1,0 +1,80 @@
+project:
+  type: book
+
+book:
+  title: "NSF POSE 2025 r.topmodel workshop"
+  chapters:
+    - index.qmd
+    - source/introduction.qmd
+    - source/requirements.qmd
+    - source/data-directory.qmd
+    - source/srtm-elevation-data.qmd
+    - source/watershed.qmd
+    - source/topographic-index.qmd
+    - source/r.topmodel-parameters.qmd
+    - source/r.topmodel-topidxstats.qmd
+    - source/ncdc-weather-data.qmd
+    - source/usgs-potential-evapotranspiration-data.qmd
+    - source/usgs-streamflow-data.qmd
+    - source/calibration.qmd
+    - source/validation.qmd
+    - source/random-parameter-sampling.qmd
+    - source/technical-references.qmd
+  
+  page-footer: "© Copyright 2025 Huidae Cho."
+
+format:
+  html:
+    theme:
+      - cosmo
+      - style.scss
+
+
+# project:
+#   type: website
+
+# website:
+#   title: "NSF POSE 2025 r.topmodel workshop"
+#   navbar: false
+
+#   sidebar:
+#     contents:
+#     - text: "NSF POSE 2025 r.topmodel Workshop"
+#     - text: "Introduction"
+#       href: source/introduction.html
+#     - text: "Requirements"
+#       href: source/requirements.html
+#     - text: "Data Directory"
+#       href: source/data-directory.html
+#     - text: "SRTM Elevation Data"
+#       href: source/srtm-elevation-data.html
+#     - text: "Watershed"
+#       href: source/watershed.html
+#     - text: "Topographic Index"
+#       href: source/topographic-index.html
+#     - text: "r.topmodel Parameters"
+#       href: source/r.topmodel-parameters.html
+#     - text: "r.topmodel Topidx Stats"
+#       href: source/r.topmodel-topidxstats.html
+#     - text: "NCDC Weather Data"
+#       href: source/ncdc-weather-data.html
+#     - text: "USGS Potential Evapotranspiration Data"
+#       href: source/usgs-potential-evapotranspiration-data.html
+#     - text: "USGS Streamflow Data"
+#       href: source/usgs-streamflow-data.html
+#     - text: "Calibration"
+#       href: source/calibration.html
+#     - text: "Validation"
+#       href: source/validation.html
+#     - text: "Random Parameter Sampling"
+#       href: source/random-parameter-sampling.html
+#     - text: "Technical References"
+#       href: source/technical-references.html
+
+#   page-footer: "© Copyright 2025 Huidae Cho."
+
+# format:
+#   html:
+#     theme:
+#       - cosmo
+#       - style.scss

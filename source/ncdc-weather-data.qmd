@@ -1,4 +1,4 @@
-# NCDC weather data
+# NCDC weather data {.unnumbered}
 
 ## Fetching information about weather stations
 

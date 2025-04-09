@@ -1,17 +1,4 @@
----
-title: "Introducion"
-author: "Huidae Cho"
-format: 
-  html:
-    toc: true
-    toc-depth: 2
-    code-tools: true
-    code-copy: true
-    code-fold: false
-  
----
-
-<!-- # Introduction -->
+# Introduction {.unnumbered}
 
 ## GRASS GIS
 

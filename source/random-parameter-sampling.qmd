@@ -1,4 +1,4 @@
-# Random Parameter Sampling
+# Random Parameter Sampling {.unnumbered}
 
 ## Running `r.topmodel` with Random Parameter Values
 

@@ -1,4 +1,4 @@
-# Calibration
+# Calibration {.unnumbered}
 
 ## Splitting Data
 

@@ -1,4 +1,4 @@
-# r.topmodel topidxstats
+# r.topmodel topidxstats {.unnumbered}
 
 [r.topmodel](https://grass.osgeo.org/grass-stable/manuals/r.topmodel.html) provides a preprocessing flag `-p` to generate a `topidxstats` file from a `topidx` raster created by [r.topidx](https://grass.osgeo.org/grass-stable/manuals/r.topidx.html). The following command calculates statistics about topographic indices in the `topidx` raster by splitting the entire range into 30 classes:
 

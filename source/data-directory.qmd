@@ -1,16 +1,4 @@
----
-format:
-  html:
-    code-fold: false
-toc: true
-toc-title: "Table of Contents"
-toc-depth: 2
-linkcolor: green
-urlcolor: green
-citecolor: green
----
-
-# Data directory
+# Data directory {.unnumbered}
 
 In [the workshop GitHub repository](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop), I included the data directory that contains all the inputs and outputs for your convenience.
 
