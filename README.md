@@ -5,7 +5,7 @@ This project hosts the materials for the [NSF POSE 2025 r.topmodel workshop](htt
 ## Project Structure  
 
 - **Main Webpage**: The primary workshop materials are rendered into a multi-page website.  
-- **Single-Page Directory**: Contains the `qmd` code for rendering a single-page version of the workshop materials.  
+- **Single-Page Directory**: Contains the quarto code for rendering a single-page version of the workshop materials.  
 
 ## Compiling the Quarto Files  
 
@@ -26,4 +26,4 @@ The output will be a single `index.html` file located directly in the `single-pa
 ## Resources and References
 - **Workshop Website**: [NSF POSE 2025 r.topmodel Workshop](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/)  
 - **Source Repository**: [GitHub - nsf-pose-2025-r.topmodel-workshop](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop)  
-- **Quarto Documentation**: [Quarto Official Documentation](https://quarto.org/docs/)  
+- **Quarto Documentation**: [Quarto Official Documentation](https://quarto.org/docs/get-started/)  
