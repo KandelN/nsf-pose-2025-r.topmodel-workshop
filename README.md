@@ -1,4 +1,4 @@
-# NSF POSE 2025 r.topmodel Workshop  
+# Physically-based hydrologic modeling using GRASS GIS r.topmodel
 
 This project hosts the materials for the [NSF POSE 2025 r.topmodel workshop](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/) in a Quarto webpage format. The repository is structured to provide both a multi-page website and a single-page version of the workshop content.  
 
