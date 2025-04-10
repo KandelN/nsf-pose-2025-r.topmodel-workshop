@@ -6,6 +6,7 @@ This project hosts the materials for the [NSF POSE 2025 r.topmodel workshop](htt
 
 - **Main Webpage**: The primary workshop materials are rendered into a multi-page website.  
 - **Single-Page Directory**: Contains the quarto code for rendering a single-page version of the workshop materials.  
+- **Single-Quarto Directory**: Includes a self-contained single .qmd file that represents the entire workshop, which can be rendered into a single HTML page.
 
 ## Compiling the Quarto Files  
 
@@ -17,11 +18,18 @@ quarto render index.qmd
 The output will be generated in the `_output` folder, containing the compiled HTML files for the multi-page website.  
 
 ### Single-Page Version  
-To compile the single-page version of the workshop materials, navigate to the `single-page` directory and run:  
+To compile the single-page version of the workshop materials, run the following command:  
 ```bash  
 quarto render single-page/index.qmd  
 ```  
 The output will be a single `index.html` file located directly in the `single-page` directory.  
+
+### Single-Quarto File  
+To compile the entire workshop into a single HTML file using the self-contained Quarto file,  run the following command:  
+```bash  
+quarto render single-qmd/r.topmodel.qmd    
+```  
+The output will be a single `r.topmodel.html` file located directly in the `single-qmd` directory.  
 
 ## Resources and References
 - **Workshop Website**: [NSF POSE 2025 r.topmodel Workshop](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/)  
