@@ -184,6 +184,3 @@ legend("topleft", legend=c("obs_c", "sim_c"), col=c("red", "green"), lty=1, bty=
 
 From the above plot, the observed streamflow is mostly within the simulated range. If we consider these "models" from the same model structure of TOPMODEL as different models, constructing an ensemble model may be a good idea because no models are perfect, and they all come with uncertainty.
 
-## References
-
-Beven, K., Binley, A., 2014. GLUE - 20 Years On. *Hydrological Processes* 28 (24), 5897-5918. [https://doi.org/10.1002/hyp.10082](https://doi.org/10.1002/hyp.10082)

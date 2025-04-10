@@ -41,17 +41,3 @@ F(\vec{x})=\sum_{i=1}^D\left[x_i^2-10\cos(2\pi x_i)+10\right]
 $$
 
 ![](images/rastrigin.gif){.align-center}
-
-## References
-
-Beven, K., 1984. Infiltration into a Class of Vertically Non-Uniform Soils. Hydrological Sciences Journal 29 (4), 425-434. [doi:10.1080/02626668409490960](https://doi.org/10.1080/02626668409490960).
-
-Beven, K., Lamb, R., Quinn, P., Romanowicz, R., Freer, J., 1995. TOPMODEL. In: Singh, V.P. (Ed.), Computer Models of Watershed Hydrology. Water Resources Publications, pp. 627-668.
-
-Cho, H., 2000. GIS Hydrological Modeling System by Using Programming Interface of GRASS. Master’s Thesis, Department of Civil Engineering, Kyungpook National University, South Korea.
-
-Cho, H., Kim, D., Olivera, F., Guikema, S. D., 2011. Enhanced Speciation in Particle Swarm Optimization for Multi-Modal Problems. European Journal of Operational Research 213 (1), 15-23. [doi:10.1016/j.ejor.2011.02.026](https://doi.org/10.1016/j.ejor.2011.02.026).
-
-Li, X., 2004. Adaptively Choosing Neighbourhood Bests Using Species in a Particle Swarm Optimizer for Multimodal Function Optimization. Lecture Notes in Computer Science 3102, 105-166. [doi:10.1007/978-3-540-24854-5_10](https://doi.org/10.1007/978-3-540-24854-5_10).
-
-Neteler, M., Bowman, M. H., Landa, M., Metz, M., 2012. GRASS GIS: A Multi-Purpose Open Source GIS. Environmental Modelling & Software 31, 124-130. [doi:10.1016/j.envsoft.2011.11.014](https://doi.org/10.1016/j.envsoft.2011.11.014).
