@@ -1,4 +1,4 @@
-## USGS Potential Evapotranspiration Data {.unnumbered}
+# USGS Potential Evapotranspiration Data {.unnumbered}
 
 The USGS daily global potential evapotranspiration (PET) [data](https://earlywarning.usgs.gov/fews/product/81) is estimated using climate parameters extracted from the Global Data Assimilation System (GDAS), which is run every six hours by [the National Oceanic and Atmospheric Administration (NOAA)](https://www.noaa.gov/). Its data resolution is 1° by 1°, and data availability starts from January 1, 2001. However, its web interface is limited to single-year, single-month, or single-day downloads.  
 The unit of this data product is $0.01 \, \text{mm}$, meaning a cell value of 1 indicates a daily potential evapotranspiration of $0.01 \, \text{mm}$.
