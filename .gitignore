@@ -1,3 +1,6 @@
-*.quarto/
-*_*/
+*/.quarto/
+*/index_files/
+*/*.html
 *.html
+/.quarto/
+/_output/
