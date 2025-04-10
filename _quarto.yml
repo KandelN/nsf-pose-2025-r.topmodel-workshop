@@ -1,5 +1,6 @@
 project:
   type: book
+  output-dir: _output
 
 book:
   title: "NSF POSE 2025 r.topmodel workshop"
@@ -25,6 +26,7 @@ book:
 
 format:
   html:
+    html-math-method: katex
     theme:
       - cosmo
       - style.scss
