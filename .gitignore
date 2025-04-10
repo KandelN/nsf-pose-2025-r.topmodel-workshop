@@ -1,6 +1,7 @@
-*/.quarto/
-*/*_files/
-*/*.html
 *.html
 /.quarto/
 /_output/
+
+*/*.html
+*/.quarto/
+*/*_files/

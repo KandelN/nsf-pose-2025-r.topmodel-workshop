@@ -1,6 +1,8 @@
 ---
 title: "Physically-based hydrologic modeling using GRASS GIS r.topmodel"
-page-footer: "© Copyright 2025 Huidae Cho."
+author: "Huidae Cho"
+date: 2025-01-31
+date-modified: today
 format:
   html:
     code-fold: false
@@ -8,6 +10,7 @@ format:
     theme:
       - cosmo
       - style.scss
+categories: [bash, R, intermediate]
 toc: true
 toc-title: "Table of Contents"
 toc-depth: 2

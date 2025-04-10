@@ -1,0 +1,1503 @@
+---
+title: "Physically-based hydrologic modeling using GRASS GIS r.topmodel"
+author: "Huidae Cho"
+date: 2025-01-31
+date-modified: today
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-tools: true
+    code-copy: true
+    code-fold: false
+    html-math-method: katex
+    theme:
+      - cosmo
+categories: [bash, R, intermediate]
+linkcolor: green
+urlcolor: green
+citecolor: green
+highlight-style: github
+# engine: knitr
+execute:
+  eval: false
+---
+
+<!-- # Physically-based hydrologic modeling using GRASS GIS r.topmodel {.unnumbered} -->
+# Welcome {.unnumbered #sec-index}
+
+![](images/NSF_grant_announcement.png){align=center width=75%}
+
+This workshop will introduce r.topmodel (Cho 2000), the GRASS GIS module for a physically-based hydrologic model called TOPMODEL (Beven 1984). r.topmodel is a C implementation of the original FORTRAN code by Beven and tightly integrated with GRASS GIS. We will discuss step-by-step instructions for preparing input data for r.topmodel, running it, calibrating its model parameters, and, finally, post-processing the model outputs.
+
+![](images/subbasins-for-r.topmodel.png){.align-center width=75%}
+
+## Abstract
+
+The Topography Model (TOPMODEL) is "a set of conceptual tools that can be used to reproduce the hydrological behaviour of catchments in a distributed or semi-distributed way, in particular the dynamics of surface of subsurface contributing areas" (Beven et al. 1995). Cho (2000) reimplemented his FORTRAN code as a GRASS GIS module in C, based on which the R package (Buytaert 2009) and SAGA GIS module (Conrad 2003) have been developed (Cho et al. 2019). Cho (2020) developed r.accumulate, an efficient GRASS GIS hydrologic module for calculating one of its parameters. We will use these and other modules to create a r.topmodel model and use R scripts including Isolated-Speciation-based Particle Swarm Optimization (ISPSO) (Cho et al. 2011), a particle swarm optimization algorithm in R, to calibrate its parameters.
+
+## Author and affiliations
+
+::: columns
+::: {.column width="25%"}
+
+![](images/portrait.png){width=80%}
+:::
+
+::: {.column width="75%"}
+
+
+**Huidae Cho**, New Mexico State University, United States 
+<br> 
+Huidae /hidɛ/ is a water resources engineer. He received his master’s from Kyungpook National University and Ph.D. from Texas A&M University. He teaches Water Resources Engineering at New Mexico State University. He is a member of the GRASS GIS Development Team and Project Steering Committee. 
+:::
+:::
+
+
+## Level
+
+Basic. General basic knowledge is required.
+
+## Requirements for the attendees
+
+- Basic GIS knowledge is required including coordinate systems, geospatial data formats, etc.
+- Basic hydrologic knowledge is required including flow directions, flow accumulation, watershed delineation, etc.
+- GRASS GIS is required on Linux, macOS, or Windows.
+- Digital elevation data (DEM), daily rainfall, evapotranspiration, and streamflow data will be provided.
+
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+
+# Introduction {.unnumbered #sec-introduction}
+
+## GRASS GIS
+
+The Geographic Resources Analysis Support System ([GRASS](https://grass.osgeo.org/)) is an open-source Geographic Information System (GIS), which was originally developed by the U.S. Army Construction Engineering Research Laboratories (USA-CERL) in 1982 for land management and environmental planning. Its version 5.0 was released under the GNU General Public License (GPL) as an open-source project in October 1999 (Neteler et al. 2012).
+
+### Latest version
+
+Currently, the latest stable version 8.4 is available from [here](https://grass.osgeo.org/download/) and the source code is [hosted on GitHub](https://github.com/OSGeo/grass).
+
+## TOPMODEL
+
+Beven (1984) introduced the Topography Model (TOPMODEL), which is a physically-based distributed hydrologic model. It uses the topographic index $\ln{\frac{a_i}{\tan\beta_i}}$ where $a_i$ is the area of the hillslope per unit contour length draining into point $i$ and $\beta_i$ is the local slope at this point. TOPMODEL assumes that areas with similar topographic indices behave in a hydrologically similar manner.
+
+### Main assumptions
+
+It makes three main assumptions:
+
+1. the hydraulic gradient of the water table can be approximated by the surface slope,
+2. dynamic conditions can be assumed to be steady-state, and
+3. the saturated hydraulic conductivity decreases exponentially with depth.
+
+It is best applied for watersheds for which these assumptions hold, such as humid watersheds with shallow soil layers Beven et al. (1995).
+
+Total flow consists of direct runoff from saturated areas, return flow from saturated areas where storage deficit is less than 0, and subsurface flow.
+
+### r.topmodel and r.topidx
+
+Cho (2000) rewrote TMOD9502.FOR and GRIDATB.FOR, the FORTRAN 77 version of TOPMODEL and the topographic index calculator by Beven, in C and integrated them with GRASS GIS as the [r.topmodel](https://grass.osgeo.org/grass-stable/manuals/r.topmodel.html) and [r.topidx](https://grass.osgeo.org/grass-stable/manuals/r.topidx.html) modules, respectively. Both modules are included in the standard GRASS GIS installation.
+
+We will use these GRASS modules for today's workshop.
+
+## ISPSO
+
+Isolated-Speciation-based Particle Swarm Optimization ([ISPSO](https://idea.isnew.info/ispso.html)) is a multi-modal optimization algorithm based on Species-based PSO (SPSO) by Li (2004). It was developed by Cho et al. (2011) to solve multi-modal problems in stochastic rainfall modeling and hydrologic modeling. It is written in R and available from [its GitHub repository](https://github.com/HuidaeCho/ispso).
+
+### Finding minima in the Rastrigin function
+
+$$
+F(\vec{x})=\sum_{i=1}^D\left[x_i^2-10\cos(2\pi x_i)+10\right]
+$$
+
+![](images/rastrigin.gif){.align-center}
+
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Requirements {.unnumbered #sec-requirements}
+
+## Software requirements
+
+- Operating systems: [Linux](https://www.kernel.org/), [macOS](https://www.apple.com/macos/), [Windows](https://www.microsoft.com/windows/)
+- [Git](https://git-scm.com/)
+- [GRASS GIS](https://grass.osgeo.org/)
+  - [r.accumulate](https://grass.osgeo.org/grass-stable/manuals/addons/r.accumulate.html) to be installed using [g.extension](https://grass.osgeo.org/grass-stable/manuals/g.extension.html)
+- [Python 3](https://www.python.org/) installed with GRASS GIS
+  - [ProjPicker](https://projpicker.readthedocs.io/)
+- [R](https://www.r-project.org/)
+  - [fOptions package](https://cran.r-project.org/web/packages/fOptions/index.html)
+  - [plotrix package](https://cran.r-project.org/web/packages/plotrix/index.html)
+- [Workshop Python/R scripts](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/tree/master/scripts)
+
+## GitHub repository for the workshop
+
+Clone the workshop repository from <https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop>.
+
+```bash
+git clone https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop.git
+```
+
+We will run this workshop from `nsf-pose-2025-r.topmodel-workshop/run`.
+
+```bash
+cd nsf-pose-2025-r.topmodel-workshop
+mkdir run
+cd run
+```
+
+## Data requirements
+
+### r.topmodel data
+
+[r.topmodel](https://grass.osgeo.org/grass-stable/manuals/r.topmodel.html) requires the following inputs:
+
+- rainfall time series
+- evapotranspiration time series
+- a topographic index statistics file generated by preprocessing (`r.topmodel -p`)
+
+### r.topidx data
+
+[r.topidx](https://grass.osgeo.org/grass-stable/manuals/r.topidx.html) requires an elevation raster map.
+
+### Data sources
+
+#### Digital elevation models
+
+The following digital elevation model (DEM) products cover most of the world:
+
+- [Shuttle Radar Topography Mission (SRTM)](https://www2.jpl.nasa.gov/srtm/)
+- [Advanced Spaceborne Thermal Emission and Reflection Radiometer (ASTER) Global Digital Elevation Model](https://asterweb.jpl.nasa.gov/gdem.asp)
+- [Advanced Land Observing Satellite (ALOS) World 3D - 30m](https://www.eorc.jaxa.jp/ALOS/en/aw3d30/)
+
+All these products are available free of charge in 1°x1° tiles at a 1-arcsecond (approximately 30-m) resolution.
+
+ASTER and SRTM data can be downloaded from [EarthExplorer](https://earthexplorer.usgs.gov/).
+
+#### Weather forcing data
+
+The National Centers for Environmental Information ([NCEI](https://www.ncei.noaa.gov/)) provides an application programming interface (API) for downloading weather data from [the Climate Data Online (CDO) web services](https://www.ncdc.noaa.gov/cdo-web/webservices/v2).
+
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Data directory {.unnumbered #sec-data-directory}
+
+In [the workshop GitHub repository](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop), I included the data directory that contains all the inputs and outputs for your convenience.
+
+## Large files
+
+Since GitHub does not support files larger than 100 MB, I tried [Git Large File Storage (LFS)](https://git-lfs.github.com/). Learning this Git extension, I hit my bandwidth limit of 1 GB in just one day. Two files are missing from the repository:
+
+- [grassdata.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/grassdata.zip) (521 MB)
+- [NHD_H_0313_HU4_Shape.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/NHD_H_0313_HU4_Shape.zip) (138 MB)
+
+## Directory structure
+
+- [SRTM Elevation Data](#sec-srtm-elevation-data)
+    - [streamstats_02331600_watershed.zip](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/streamstats_02331600_watershed.zip)
+    - [n34_w084_1arc_v3.tif](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/n34_w084_1arc_v3.tif)
+- [Watershed](#sec-watershed)
+    - [grassdata.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/grassdata.zip)
+    - [NHD_H_0313_HU4_Shape.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/NHD_H_0313_HU4_Shape.zip)
+- [r.topmodel Parameters](#sec-r.topmodel-parameters)
+    - [params_init.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/params_init.txt)
+- [r.topmodel Topidxstats](#sec-r.topmodel-topidxstats)
+    - [topidxstats.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/topidxstats.txt)
+- [NCDC Weather Data](#sec-ncdc-weather-data)
+    - [ghcnd-inventory.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ghcnd-inventory.txt)
+    - [data.db](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/data.db)
+    - [ncdc_prcp_stations.json](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_prcp_stations.json)
+    - [ncdc_evap_stations.json](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_evap_stations.json)
+    - [input_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_evap.txt)
+- [USGS Potential Evapotranspiration Data](#sec-usgs-potential-evapotranspiration-data)
+    - [usgs_pet](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/usgs_pet)
+    - [usgs_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/usgs_pet.txt)
+    - [ncdc_prcp.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_prcp.txt)
+    - [ncdc_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_evap.txt)
+    - [input_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_pet.txt)
+- [USGS Streamflow Data](#sec-usgs-streamflow-data)
+    - [obs.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs.txt)
+- [Calibration](#sec-calibration)
+    - [input_c_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_c_evap.txt)
+    - [input_c_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_c_pet.txt)
+    - [obs_c.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs_c.txt)
+    - [input_v_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_v_evap.txt)
+    - [input_v_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_v_pet.txt)
+    - [obs_v.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs_v.txt)
+    - [config.R](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/config.R)
+    - [params.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/params.txt)
+    - [sim](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim)
+    - [output_c.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/output_c.txt)
+    - [sim_c.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_c.txt)
+- [Validation](#sec-validation)
+    - [output_v.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/output_v.txt)
+    - [sim_v.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_v.txt)
+- [Random Parameter Sampling](#sec-random-parameter-sampling)
+    - [config_random.R](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/config_random.R)
+    - [sim_random](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_random)
+
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# SRTM elevation data {.unnumbered #sec-srtm-elevation-data}
+
+## Finding a streamflow gauge
+
+For this workshop, we need to find a watershed that has a streamflow gauge at its outlet for calibration purposes. Go to [StreamStats](https://streamstats.usgs.gov/ss/) and search for `02331600`, which is the name of a United States Geological Survey (USGS) streamflow gauge.
+
+![](images/streamstats-02331600-gauge.png){.align-center width=75%}
+
+Copy the latitude and longitude to a text editor. We will need this information later.
+
+Select Georgia and delineate a watershed at just the downstream cell of the gauge. Download the watershed Shapefile as [streamstats_02331600_watershed.zip](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/streamstats_02331600_watershed.zip).
+
+![](images/streamstats-02331600-watershed.png){.align-center width=75%}
+
+## Downloading the SRTM DEM
+
+Go to [EarthExplorer](https://earthexplorer.usgs.gov/) and zoom to the area of the watershed above. Draw a polygon that entirely covers the watershed.
+
+![](images/earthexplorer-search-criteria.png){.align-center width=75%}
+
+We will use the [SRTM DEM](https://www2.jpl.nasa.gov/srtm/). Click Data Sets and search for "SRTM 1 arc-second".
+
+![](images/earthexplorer-data-sets.png){.align-center width=75%}
+
+Click Results and download [the GeoTIFF file](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/n34_w084_1arc_v3.tif).
+
+![](images/earthexplorer-results.png){.align-center width=75%}
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Watershed {.unnumbered #sec-watershed}
+
+Let's check the coordinate reference system (CRS) of the DEM.
+
+```bash
+gdalsrsinfo n34_w084_1arc_v3.tif
+```
+
+This is my output.
+
+```bash
+PROJ.4 : +proj=longlat +datum=WGS84 +no_defs
+
+OGC WKT2:2018 :
+GEOGCRS["WGS 84",
+    DATUM["World Geodetic System 1984",
+        ELLIPSOID["WGS 84",6378137,298.257223563,
+            LENGTHUNIT["metre",1]]],
+    PRIMEM["Greenwich",0,
+        ANGLEUNIT["degree",0.0174532925199433]],
+    CS[ellipsoidal,2],
+        AXIS["geodetic latitude (Lat)",north,
+            ORDER[1],
+            ANGLEUNIT["degree",0.0174532925199433]],
+        AXIS["geodetic longitude (Lon)",east,
+            ORDER[2],
+            ANGLEUNIT["degree",0.0174532925199433]],
+    ID["EPSG",4326]]
+```
+
+From the last line, we can tell the DEM is in [EPSG:4326](https://epsg.io/4326). We will import this DEM into another projected CRS.
+
+## Choosing a projected CRS
+
+Using the [ProjPicker](https://projpicker.readthedocs.io/) Python module, let's figure out which projected CRS to use for this study. Install and run this module.
+
+```bash
+pip3 install --user projpicker
+projpicker -g
+```
+
+Zoom to the area of the watershed using Ctrl + dragging and draw a bounding polygon using left-clicks (double left-click to complete drawing). Refer to the Help tab. Click Query and search for "projected; nad83; us foot".
+
+![](images/projpicker-watershed.png){.align-center width=75%}
+
+Select the first CRS. We will use [EPSG:2240](https://epsg.io/2240).
+
+![](images/projpicker-epsg2240.png){.align-center width=75%}
+
+## Importing the DEM
+
+Now that we know which CRS to use for our analysis, let's create a new GRASS location in EPSG:2240 and import the DEM by reprojecting it from its original CRS EPSG:4326 to EPSG:2240 on the fly. Open a new terminal.
+
+```bash
+mkdir grassdata
+grass -c epsg:2240 grassdata/epsg2240
+g.gui
+r.import input=n34_w084_1arc_v3.tif output=n34_w084_1arc_v3
+g.region raster=n34_w084_1arc_v3
+# display n34_w084_1arc_v3
+```
+
+![](images/n34-w084-1arc-v3.png){.align-center width=75%}
+
+### Prepopulated location
+
+If you face any issues with this step, download and extract [grassdata.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/grassdata.zip).
+
+```bash
+curl -o grassdata.zip https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/grassdata.zip
+unzip grassdata.zip
+grass grassdata/epsg2240/PERMANENT
+g.gui
+g.region raster=n34_w084_1arc_v3
+# display n34_w084_1arc_v3
+```
+
+## Creating the outlet
+
+Use the latitude and longitude from above to create an outlet vector.
+
+```bash
+m.proj -i coordinates=-83.622775,34.5407222 | v.in.ascii input=- output=outlet
+# display outlet
+```
+
+![](images/outlet.png){.align-center width=75%}
+
+## Downloading stream data for DEM burning
+
+Go to [the National Map Download Viewer](https://apps.nationalmap.gov/downloader/), zoom to the watershed, and draw an extent polygon. Check Hydrography, National Hydrography Dataset (NHD), HU-4 Subregion, and Shapefile.
+
+![](images/nationalmap-search.png){.align-center width=75%}
+
+Download [NHD_H_0313_HU4_Shape.zip](https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/HU4/HighResolution/Shape/NHD_H_0313_HU4_Shape.zip).
+
+![](images/nationalmap-download.png){.align-center width=75%}
+
+```bash
+curl -o NHD_H_0313_HU4_Shape.zip https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/HU4/HighResolution/Shape/NHD_H_0313_HU4_Shape.zip
+# or if it fails,
+# curl -o NHD_H_0313_HU4_Shape.zip https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/NHD_H_0313_HU4_Shape.zip
+```
+
+## Burning the DEM
+
+Import the stream data.
+
+```bash
+unzip NHD_H_0313_HU4_Shape.zip
+v.import input=Shape/NHDFlowline.shp output=nhd_h_0313_hu4_flowlines
+```
+
+Snap the outlet to the stream network. Create the shortest line from the outlet to the nearest stream.
+
+```bash
+v.db.addcolumn map=outlet columns="to_cat int"
+v.distance from=outlet to=nhd_h_0313_hu4_flowlines output=outlet_to_nhd upload=cat column=to_cat
+```
+
+Extract the end node of the connecting line.
+
+```bash
+v.to.points input=outlet_to_nhd layer=-1 use=end output=outlet_snapped_end
+```
+
+Change the layer number from 2 to 1.
+
+```bash
+v.category input=outlet_snapped_end option=chlayer layer=2,1 output=outlet_snapped
+# display outlet_snapped
+```
+
+![](images/outlet-snapped.png){.align-center width=75%}
+
+Read the stream category at the outlet.
+
+```bash
+v.db.select map=outlet columns=to_cat
+```
+
+That is 10939 in the nhd_h_0313_hu4_flowlines vector. Create a new vector that contains the end node of this stream feature.
+
+```bash
+echo P 1 10939 100% | v.segment input=nhd_h_0313_hu4_flowlines output=stream_end
+```
+
+Read the coordinates of the snapped outlet.
+
+```bash
+v.to.db -p map=outlet_snapped option=coor
+```
+
+The outlet is at 2460369.59482209,1652285.55287325. Make a copy of nhd_h_0313_hu4_flowlines and break the stream at the outlet.
+
+```bash
+g.copy vector=nhd_h_0313_hu4_flowlines,streams
+v.edit map=streams tool=break coor=2460369.59482209,1652285.55287325
+```
+
+Read the coordinates of the stream end.
+
+```bash
+v.to.db -p map=stream_end option=coor
+```
+
+The coordinates are 2460106.33505189,1652308.56363985. Delete the downstream piece of the stream. This edit will delete more features at the downstream side of the watershed, but that should be fine because we are only concerned with the upstream part of the stream network.
+
+```bash
+v.edit map=streams tool=delete coords=2460106.33505189,1652308.56363985
+```
+
+Compute weakly connected components in the stream network and find the component ID inside the watershed. For querying the component ID, use the coordinates of the snapped outlet.
+
+```bash
+v.net.components input=streams output=streams_net method=weak
+v.what -ag map=streams_net coordinates=2460369.59482209,1652285.55287325 | grep comp=
+```
+
+The component ID of the stream network inside the watershed is 17. Extract this stream network.
+
+```bash
+v.extract input=streams_net where=comp=17 output=streams_watershed
+# display streams_watershed
+```
+
+![](images/streams-watershed.png){.align-center width=75%}
+
+Let's set the computational region that is big enough to contain the watershed. A buffer of 9,000 ft (100 times the 90-ft resolution) is used.
+
+```bash
+g.region -a vector=streams_watershed n=n+9000 s=s-9000 e=e+9000 w=w-9000
+```
+
+Clip the n34_w084_1arc_v3 raster to the computational region.
+
+```bash
+r.mapcalc expression=dem=n34_w084_1arc_v3
+```
+
+Burn the stream network into the DEM and calculate flow directions. Unlike some other flow direction tools, `r.watershed` does not require sinks to be filled because it uses a least-cost algorithm.
+
+```bash
+v.to.rast input=streams_watershed output=streams_watershed use=val
+r.mapcalc expression="dem_burned=if(isnull(streams_watershed),dem,-9999)"
+r.watershed elevation=dem_burned drainage=fdir
+```
+
+## Delineating the watershed
+
+Install [the r.accumulate addon](https://grass.osgeo.org/grass-stable/manuals/addons/r.accumulate.html) and delineate the watershed. The same command will calculate the flow accumulation and longest flow path as well.
+
+```bash
+g.extension extension=r.accumulate
+r.accumulate direction=fdir outlet=outlet subwatershed=watershed accumulation=facc longest_flow_path=lfp
+```
+
+Convert the watershed raster to vector.
+
+```bash
+r.to.vect input=watershed type=area output=watershed
+# display watershed and lfp vectors
+```
+
+![](images/watershed-lfp.png){.align-center width=75%}
+
+Import the watershed from StreamStats and compare both.
+
+```bash
+unzip streamstats_02331600_watershed.zip
+v.import input=layers/globalwatershed.shp output=watershed_streamstats
+v.overlay ainput=watershed binput=watershed_streamstats operator=xor output=watershed_diff
+# display watershed_diff
+```
+
+![](images/watershed-diff.png){.align-center width=75%}
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Topographic index {.unnumbered #sec-topographic-index}
+
+## Warning
+
+It is important to use the native resolution of the DEM when we calculate topographic index rasters because [r.topidx](https://grass.osgeo.org/grass-stable/manuals/r.topidx.html) uses neighbor cell values to determine the local surface topographic slope. See [this article](https://idea.isnew.info/r.topidx.html) for more information. If you did not deviate from my instructions, you should already be in the correct resolution. Otherwise, run this command to set the correct region and resolution using the DEM raster.
+
+```bash
+g.region raster=dem
+```
+
+## Calculating the topographic index
+
+Calculating the topographic index just takes one command. Then, clip it to the watershed raster.
+
+```bash
+r.topidx input=dem output=topidx
+r.mapcalc expression="topidx_watershed=if(isnull(watershed),null(),topidx)"
+# display topidx_watershed
+```
+
+![Topidx Watershed](images/topidx-watershed.png){.align-center width=75%}
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# r.topmodel parameters {.unnumbered #sec-r.topmodel-parameters}
+
+[r.topmodel](https://grass.osgeo.org/grass-stable/manuals/r.topmodel.html) requires the following three input files:
+
+- Parameters: TOPMODEL parameters passed to `r.topmodel parameters=`
+- Topidxstats: Topographic index statistics passed to `r.topmodel topidxstats=`
+- Input: Rainfall and potential evapotranspiration time series passed to `r.topmodel input=`
+
+This split design allows the modeler to use the same parameters file for different scenarios of topographic index or weather forcing data.
+
+## Parameters file structure
+
+The following is an example of the r.topmodel parameters file:
+
+```bash
+# Subwatershed name
+Subwatershed 1
+
+################################################################################
+# A [m^2]: Total subwatershed area
+3.31697E+07
+
+################################################################################
+# qs0 [m/h]: Initial subsurface flow per unit area
+#            "The first streamflow input is assumed to represent
+#             only the subsurface flow contribution in the watershed."
+#                                                        - Liaw (1988)
+0.000075
+
+# lnTe [ln(m^2/h)]: Areal average of ln(T0)
+4
+
+# m [m]: Scaling parameter
+0.0125
+
+# Sr0 [m]: Initial root zone storage deficit
+0.0025
+
+# Srmax [m]: Maximum root zone storage deficit
+0.04
+
+# td [h]: Unsaturated zone time delay per unit storage deficit if greater than 0
+#  OR
+# -alpha: Effective vertical hydraulic gradient if not greater than 0.
+#
+# For example, -10 means alpha=10.
+20
+
+# vch [m/h]: Main channel routing velocity
+1000
+
+# vr [m/h]: Internal subwatershed routing velocity
+1000
+
+################################################################################
+# infex: Calculate infiltration excess if not zero (integer)
+1
+
+# K0 [m/h]: Surface hydraulic conductivity
+2
+
+# psi [m]: Wetting front suction
+0.1
+
+# dtheta: Water content change across the wetting front
+0.1
+
+################################################################################
+# d [m]: Distance from the watershed outlet
+#           The first value should be the mainstream distance from
+#           the subwatershed outlet to the watershed outlet.
+# Ad_r:  Cumulative area ratio of subwatershed (0.0 to 1.0)
+#           The first and last values should be 0 and 1, respectively.
+
+#   d  Ad_r
+    0   0.0
+ 1000   0.2
+ 2000   0.4
+ 3000   0.6
+ 4000   0.8
+ 5000   1.0
+```
+
+When it reads any input files, r.topmodel ignores empty lines or comments starting with a `#`. The above example can be written without comments like this:
+
+```bash
+Subwatershed 1
+3.31697E+07
+0.000075
+4
+0.0125
+0.0025
+0.04
+20
+1000
+1000
+1
+2
+0.1
+0.1
+    0   0.0
+ 1000   0.2
+ 2000   0.4
+ 3000   0.6
+ 4000   0.8
+ 5000   1.0
+```
+
+All lengths and times in any input files must be given in meters and hours for consistency except for `R` (rainfall) and `Ep` (potential evapotranspiration) in the `input=` file, which are in per `dt`, a number of hours.
+
+## Parameter ranges
+
+| Name   | Description                                                    | Min    | Max    |
+|--------|----------------------------------------------------------------|--------|--------|
+| qs0    | Initial subsurface flow per unit area in m/h                   | 0      | 0.0001 |
+| lnTe   | Areal average of the soil surface transmissivity in ln(m²/h)   | -7     | 10     |
+| m      | Scaling parameter describing the soil transmissivity in m      | 0.001  | 0.25   |
+| Sr0    | Initial root zone storage deficit in m                         | 0      | 0.01   |
+| Srmax  | Maximum root zone storage deficit in m                         | 0.005  | 0.08   |
+| td     | Unsaturated zone time delay per unit storage deficit in h      | 0.001  | 40     |
+| vch    | Main channel routing velocity in m/h; not to be calibrated     | 50     | 2000   |
+| vr     | Internal subwatershed routing velocity in m/h                  | 50     | 2000   |
+| K0     | Surface hydraulic conductivity in m/h                          | 0.0001 | 0.2    |
+| psi    | Wetting front suction in m                                     | 0.01   | 0.5    |
+| dtheta | Water content change across the wetting front                  | 0.01   | 0.6    |
+
+## Multi-subwatershed models
+
+One can split a watershed into multiple subwatersheds, each of which can be modeled by a separate r.topmodel model. Then, hydrographs from multiple r.topmodel models can be combined to simulate the watershed of interest. This configuration for multiple subwatersheds can be achieved by adding the main channel distance from the watershed outlet to the outlet of each subwatershed to distances for the cumulative area ratios at the end of each parameters file. In this workshop, we will model the watershed as a single watershed as is for simplicity and ignore the main channel routing.
+
+## Our watershed parameters
+
+The first line is the name of the watershed, so let's use the name of the USGS gauge "USGS 02331600 Chattahoochee River near Cornelia, GA".
+
+The second line $A$ is the watershed area in $m^2$, which can be obtained by the following command:
+
+```bash
+r.stats -an watershed
+```
+
+The watershed area is 820,402,112.739749 $m^2$.
+
+The third line is $q_{s0}$, the initial subsurface flow per unit area in $m/h$. Unfortunately, we do not have a priori knowledge about this parameter either or both because it is hard to measure practically or we just do not have enough time during this workshop for better research about it for our watershed. Since we will calibrate this parameter, let's use 0.000075 $m/h$ for now. However, if you have better information about it for your watershed, you can use that. For this workshop, we will calibrate most non-topological parameters that cannot easily be computed in GIS.
+
+The fourth line is $\ln(T_e)$, the areal average of $\ln(T_0)$ in $\ln(m^2/h)$ where $T_0$ is the lateral transmissivity at the soil surface. Let's use 4 $\ln(m^2/h)$ for now. We will calibrate this parameter.
+
+The fifth line is $m$, the soil transmissivity scaling parameter in $m$. This parameter along with $T_0$ and $S_i$, the storage deficit at point $i$, is used to estimate the downslope transmissivity $T = T_0 \exp{\left(-\frac{S_i}{m}\right)}$. We will use 0.0125 $m$ and calibrate it later.
+
+The sixth line is $S_{r0}$, the initial root zone storage deficit in $m$. We will use 0.0025 $m$ for the initial model.
+
+The seventh line is $S_{r,\text{max}}$, the maximum root zone storage deficit in $m$. Use 0.04 $m$ for the initial model.
+
+The eighth line is $t_d$, the unsaturated zone time delay per unit storage deficit in $h$. Use 20 $h$ for the initial model.
+
+The ninth line is $v_\text{ch}$, the main channel routing velocity in $m/h$. This parameter is effective only if the distance for the first cumulative area ratio of the subwatershed is not zero because the main channel is assumed to start at the outlet of the subwatershed. We set it to 1000 $m/h$.
+
+The tenth line is $v_r$, the internal subwatershed routing velocity in $m/h$. This routing velocity is used within the subwatershed until flow reaches its outlet or the starting point of the main channel in a bigger configuration for a multi-subwatersheds (multi-r.topmodel) model. We start from 1000 $m/h$.
+
+The eleventh line is infex, the flag for calculating infiltration excess. We will calculate infiltration excess by setting it to 1.
+
+The twelfth line is $K_0$, the surface hydraulic conductivity in $m/h$. We use 2 $m/h$ for the initial model.
+
+The thirteenth line is $\psi$, the wetting front suction in $m$. Use 0.1 $m$ to start calibration.
+
+The fourteenth line is $d\theta$, the water content change across the wetting front. Use 0.1 for the initial model.
+
+The last section of the parameters file is based on topography, which is not to be calibrated. Each line consists of two columns with $d$, the distance from the watershed outlet to the subwatershed outlet in $m$, followed by $A_{d,r}$, the cumulative area ratio of the subwatershed at that distance. $A_{d,r}$ is the contribution area between the subwatershed outlet and at that distance, so it must start with 0 and end with 1.
+
+## Variable contributing areas
+
+For this workshop, let's create 10 variable contributing areas within the watershed at an equidistant interval. Since we can use 0 and 0 for the first pair of $d$ and $A_{d,r}$, and the full longest flow length and 1 for the last pair, we only need to create 9 points. Create a file called `suboutlets.txt` with the following content:
+
+```bash
+P 1 1 -10%
+P 2 1 -20%
+P 3 1 -30%
+P 4 1 -40%
+P 5 1 -50%
+P 6 1 -60%
+P 7 1 -70%
+P 8 1 -80%
+P 9 1 -90%
+```
+
+`P 2 1 -20%` means that we want to create a suboutlet point at the 20% distance from the end node of the category 1 line and assign category 2 to the new point.
+
+```bash
+v.segment input=lfp rules=suboutlets.txt output=suboutlets
+r.accumulate direction=fdir outlet=suboutlets subwatershed=subwatersheds
+# display subwatersheds and suboutlets
+```
+
+![Subwatersheds and Suboutlets](images/subwatersheds-suboutlets.png){.align-center width=75%}
+
+The blue area on the left side of the watershed does not drain into any of the nine suboutlets, but its size is almost half. This watershed really has two major subwatersheds near its outlet and the longest flow path (blue line) happens to be in just one major subwatershed. This figure overlays the streams vector.
+
+![Subwatersheds Streams Watershed](images/subwatersheds-streams-watershed.png){.align-center width=75%}
+
+In this case, it is advisable to create a multi-subwatershed model with two separate r.topmodel models. However, we will finish this single watershed case anyway.
+
+```bash
+v.db.addtable map=lfp
+v.to.db map=lfp option=length units=meters columns=length_m
+v.db.select map=lfp
+```
+
+The longest flow length is 66,110.118521 $m$. For each of 10 variable contributing areas, a distance of 6,611.0118521 $m$ is accumulated.
+
+```bash
+v.db.addtable map=suboutlets
+v.db.addcolumn map=suboutlets columns="distance_m real"
+v.db.update map=suboutlets column=distance_m query_column="cat*6611.0118521"
+```
+
+The cumulative area ratios of 10 subwatersheds can be obtained from the flow accumulation raster.
+
+```bash
+v.what.rast map=suboutlets raster=facc column=facc
+v.what.rast map=outlet raster=facc column=facc
+v.db.select map=outlet
+```
+
+The total number of cells within the watershed is 1,058,540. Divide the `facc` column in the suboutlets vector by this number to obtain the cumulative area ratios.
+
+```bash
+v.db.addcolumn map=suboutlets columns="area_ratio real"
+v.db.update map=suboutlets column=area_ratio query_column="1-facc/1058540."
+v.db.select -c suboutlets columns=distance_m,area_ratio separator=tab
+```
+
+Just make sure to append a `.` after `1058540` to force a floating-point division. This is my output:
+
+```bash
+6611.0118521    0.508024259829577
+13222.0237042   0.645446558467323
+19833.0355563   0.710716647457819
+26444.0474084   0.822589604549663
+33055.0592605   0.867452340015493
+39666.0711126   0.892391407032328
+46277.0829647   0.934296294896745
+52888.0948168   0.976866249740208
+59499.1066689   0.986551287622574
+```
+
+Prepend `0.0 0.0` and append `66110.118521 1.0` to complete the last section of the parameters file.
+
+## Our parameters file
+
+This is my [params_init.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/params_init.txt).
+
+```bash
+# Subwatershed name
+USGS 02331600 Chattahoochee River near Cornelia, GA
+
+################################################################################
+# A [m^2]: Total subwatershed area
+820402112.739749
+
+################################################################################
+# qs0 [m/h]: Initial subsurface flow per unit area
+#            "The first streamflow input is assumed to represent
+#             only the subsurface flow contribution in the watershed."
+#                                                        - Liaw (1988)
+0.000075
+
+# lnTe [ln(m^2/h)]: Areal average of ln(T0)
+4
+
+# m [m]: Scaling parameter
+0.0125
+
+# Sr0 [m]: Initial root zone storage deficit
+0.0025
+
+# Srmax [m]: Maximum root zone storage deficit
+0.04
+
+# td [h]: Unsaturated zone time delay per unit storage deficit if greater than 0
+#  OR
+# -alpha: Effective vertical hydraulic gradient if not greater than 0.
+#
+# For example, -10 means alpha=10.
+20
+
+# vch [m/h]: Main channel routing velocity
+1000
+
+# vr [m/h]: Internal subwatershed routing velocity
+1000
+
+################################################################################
+# infex: Calculate infiltration excess if not zero (integer)
+1
+
+# K0 [m/h]: Surface hydraulic conductivity
+2
+
+# psi [m]: Wetting front suction
+0.1
+
+# dtheta: Water content change across the wetting front
+0.1
+
+################################################################################
+# d [m]: Distance from the watershed outlet
+#           The first value should be the mainstream distance from
+#           the subwatershed outlet to the watershed outlet.
+# Ad_r:  Cumulative area ratio of subwatershed (0.0 to 1.0)
+#           The first and last values should be 0 and 1, respectively.
+
+#   d  Ad_r
+0.0             0.0
+6611.0118521    0.508024259829577
+13222.0237042   0.645446558467323
+19833.0355563   0.710716647457819
+26444.0474084   0.822589604549663
+33055.0592605   0.867452340015493
+39666.0711126   0.892391407032328
+46277.0829647   0.934296294896745
+52888.0948168   0.976866249740208
+59499.1066689   0.986551287622574
+66110.118521    1.0
+```
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# r.topmodel topidxstats {.unnumbered #sec-r.topmodel-topidxstats}
+
+[r.topmodel](https://grass.osgeo.org/grass-stable/manuals/r.topmodel.html) provides a preprocessing flag `-p` to generate a `topidxstats` file from a `topidx` raster created by [r.topidx](https://grass.osgeo.org/grass-stable/manuals/r.topidx.html). The following command calculates statistics about topographic indices in the `topidx` raster by splitting the entire range into 30 classes:
+
+```bash
+r.topmodel -p topidx=topidx ntopidxclasses=30 outtopidxstats=topidxstats.txt
+```
+
+This is my [topidxstats.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/topidxstats.txt).
+
+```bash
+ 1.709e+01  0.000e+00
+ 1.667e+01  1.742e-06
+ 1.625e+01  1.045e-05
+ 1.583e+01  2.569e-05
+ 1.540e+01  7.838e-05
+ 1.498e+01  1.607e-04
+ 1.456e+01  3.997e-04
+ 1.413e+01  8.017e-04
+ 1.371e+01  1.584e-03
+ 1.329e+01  2.955e-03
+ 1.287e+01  5.333e-03
+ 1.244e+01  8.724e-03
+ 1.202e+01  1.380e-02
+ 1.160e+01  2.058e-02
+ 1.118e+01  2.968e-02
+ 1.075e+01  4.057e-02
+ 1.033e+01  5.265e-02
+ 9.909e+00  6.663e-02
+ 9.487e+00  8.124e-02
+ 9.064e+00  9.726e-02
+ 8.642e+00  1.153e-01
+ 8.219e+00  1.298e-01
+ 7.797e+00  1.306e-01
+ 7.374e+00  1.064e-01
+ 6.952e+00  6.378e-02
+ 6.529e+00  2.499e-02
+ 6.107e+00  5.808e-03
+ 5.684e+00  7.577e-04
+ 5.261e+00  4.703e-05
+ 4.839e+00  2.613e-06
+```
+
+Each line starts with the upper limit of a topographic index range whose ratio is recorded in the next line in the second column with its lower limit in the first column. For example, topographic indices between $16.67$ and $17.09$ cover $1.742 \times 10^{-4} \%$ of the watershed.
+
+These pairs are sorted by the topographic index in descending order. Since the first line represents the maximum topographic index, its second column must always be $0$.
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# NCDC weather data {.unnumbered #sec-ncdc-weather-data}
+
+## Fetching information about weather stations
+
+Download the Global Historical Climatology Network daily (GHCNd) inventory data using [`fetch_ghcnd_inventory.py`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/fetch_ghcnd_inventory.py). This script will download [`ghcnd-inventory.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ghcnd-inventory.txt) and create the `ghcnd_inventory` table in [`data.db`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/data.db).
+
+```sql
+CREATE TABLE ghcnd_inventory (
+    cat INTEGER PRIMARY KEY,
+    id VARCHAR(20),
+    latitude REAL,
+    longitude REAL,
+    datatypeid VARCHAR(4),
+    minyear INT,
+    maxyear INT
+);
+```
+
+We will use this data to check data availability for a certain period of time for simulation. We need `datatypeid`s for `PRCP` (precipitation) and `EVAP` (evaporation).
+
+Using [`fetch_ncdc_prcp_stations.py`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/fetch_ncdc_prcp_stations.py) and [`fetch_ncdc_evap_stations.py`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/fetch_ncdc_evap_stations.py), fetch information about `PRCP` and `EVAP` stations from the CDO database. These two scripts will create [`ncdc_prcp_stations.json`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_prcp_stations.json) and [`ncdc_evap_stations.json`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_evap_stations.json). It will also create the `ncdc_prcp_stations` and `ncdc_evap_stations` tables in `data.db`.
+
+```sql
+CREATE TABLE ncdc_prcp_stations (
+    cat INTEGER PRIMARY KEY,
+    id VARCHAR(20),
+    name VARCHAR(100),
+    latitude REAL,
+    longitude REAL,
+    elevation REAL,
+    elevationUnit VARCHAR(10),
+    datacoverage REAL,
+    mindate VARCHAR(10),
+    maxdate VARCHAR(10)
+);
+
+CREATE TABLE ncdc_evap_stations (
+    cat INTEGER PRIMARY KEY,
+    id VARCHAR(20),
+    name VARCHAR(100),
+    latitude REAL,
+    longitude REAL,
+    elevation REAL,
+    elevationUnit VARCHAR(10),
+    datacoverage REAL,
+    mindate VARCHAR(10),
+    maxdate VARCHAR(10)
+);
+```
+
+The `mindate` and `maxdate` columns are not necessarily for `PRCP` or `EVAP` data. Instead, we need to use the `minyear` and `maxyear` columns in the `ghcnd_inventory` table.
+
+## Creating weather station vectors
+
+The coordinates of NCDC weather stations are in latitude and longitude, so we need to create a new latlong location in [`EPSG:4326`](https://epsg.io/4326). Open a new terminal.
+
+```bash
+grass -c epsg:4326 grassdata/epsg4326
+```
+
+Import both `ncdc_prcp_stations` and `ncdc_evap_stations`. We will use data from January 1, 2010 to December 31, 2020.
+
+```bash
+v.in.db table=ncdc_prcp_stations database=data.db x=longitude y=latitude z=elevation key=cat output=ncdc_prcp_stations where="id in (select id from ghcnd_inventory where datatypeid='PRCP' and minyear <= 2010 and maxyear >= 2020)"
+v.in.db table=ncdc_evap_stations database=data.db x=longitude y=latitude z=elevation key=cat output=ncdc_evap_stations where="id in (select id from ghcnd_inventory where datatypeid='EVAP' and minyear <= 2010 and maxyear >= 2020)"
+```
+
+Import the watershed vector from the `epsg2240` location.
+
+```bash
+v.proj location=epsg2240 input=watershed
+```
+
+Let's see which weather stations are within or close to the watershed. Create the Voronoi diagrams of `ncdc_prcp_stations` and `ncdc_evap_stations`, and select those stations within the Voronoi polygons. There are 116,459 points in `ncdc_prcp_stations`, but calculating their Voronoi polygons should not take long. It took about 34 seconds on my i5 laptop.
+
+```bash
+v.voronoi input=ncdc_prcp_stations output=ncdc_prcp_stations_voronoi
+v.voronoi input=ncdc_evap_stations output=ncdc_evap_stations_voronoi
+
+v.select ainput=ncdc_prcp_stations_voronoi binput=watershed output=prcp_stations_voronoi
+v.select ainput=ncdc_evap_stations_voronoi binput=watershed output=evap_stations_voronoi
+
+v.select ainput=ncdc_prcp_stations binput=prcp_stations_voronoi output=prcp_stations
+v.select ainput=ncdc_evap_stations binput=evap_stations_voronoi output=evap_stations
+
+# display watershed, prcp_stations, and evap_stations
+```
+
+![Watershed Weather Stations](images/watershed-weather-stations.png){.align-center width=75%}
+
+Blue is `prcp_stations` and orange is `evap_stations`.
+
+Now, go back to the `epsg2240` terminal and import these selected stations.
+
+```bash
+v.proj location=epsg4326 input=prcp_stations_voronoi
+v.proj location=epsg4326 input=evap_stations_voronoi
+v.proj location=epsg4326 input=prcp_stations
+v.proj location=epsg4326 input=evap_stations
+```
+
+Clip the Voronoi vectors to the watershed.
+
+```bash
+v.clip input=prcp_stations_voronoi clip=watershed output=prcp_stations_voronoi_watershed
+v.clip input=evap_stations_voronoi clip=watershed output=evap_stations_voronoi_watershed
+# display prcp_stations_voronoi_watershed
+```
+
+![Prcp Stations Voronoi Watershed](images/prcp-stations-voronoi-watershed.png){.align-center width=75%}
+
+# Downloading weather data
+
+The following command will create [`input_evap.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_evap.txt) that can directly be passed to `r.topmodel input=`.
+
+```bash
+tmod.ncdc prcp_voronoi=prcp_stations_voronoi_watershed evap_voronoi=evap_stations_voronoi_watershed start_date=2010-01-01 end_date=2020-12-31 output=input_evap.txt
+
+```
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# USGS Potential Evapotranspiration Data {.unnumbered #sec-usgs-potential-evapotranspiration-data}
+
+The USGS daily global potential evapotranspiration (PET) [data](https://earlywarning.usgs.gov/fews/product/81) is estimated using climate parameters extracted from the Global Data Assimilation System (GDAS), which is run every six hours by [the National Oceanic and Atmospheric Administration (NOAA)](https://www.noaa.gov/). Its data resolution is 1° by 1°, and data availability starts from January 1, 2001. However, its web interface is limited to single-year, single-month, or single-day downloads.  
+The unit of this data product is $0.01 \, \text{mm}$, meaning a cell value of 1 indicates a daily potential evapotranspiration of $0.01 \, \text{mm}$.
+
+## Downloading PET Data
+
+Direct downloads are available from the following directories:
+
+- [Daily directory](https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/daily/)
+- [Monthly directory](https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/monthly/)
+- [Yearly directory](https://edcintl.cr.usgs.gov/downloads/sciweb1/shared/fews/web/global/daily/pet/downloads/yearly/)
+
+Using [`fetch_usgs_pet.py`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/fetch_usgs_pet.py), you can download PET data:
+
+```bash
+fetch_usgs_pet.py 2010-01-01 2020-12-31
+```
+
+## Extracting Data for the Watershed
+
+From the `epsg4326` location, import all the files using [`import_usgs_pet.sh`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/blob/master/scripts/import_usgs_pet.sh).
+
+Find the centroid of the watershed:
+
+```bash
+v.to.db map=watershed option=coor columns=x,y
+v.to.db map=watershed option=area columns=area_km2 units=kilometers
+v.db.select map=watershed
+```
+
+The major centroid is at $-83.6274554161366, 34.6959628598932$.
+
+Extract PET data at the centroid:
+
+```bash
+for i in $(g.list type=raster pattern=et*); do
+    r.what map=$i coordinates=-83.6274554161366,34.6959628598932 | sed 's/.*|/0.00001*/' | bc
+done > usgs_pet.txt
+```
+
+## Creating Input Files
+
+Replace NCDC EVAP data in `input_evap.txt` with this data and create a new `input_pet.txt` file:
+
+```bash
+head -9 input_evap.txt > input_pet.txt
+tail +10 input_evap.txt | sed 's/ .*//' > ncdc_prcp.txt
+tail +10 input_evap.txt | sed 's/.* //' > ncdc_evap.txt
+paste ncdc_prcp.txt usgs_pet.txt >> input_pet.txt
+```
+
+## Comparing EVAP and PET Data
+
+In R, compare EVAP and PET data:
+
+```r
+evap <- read.table("ncdc_evap.txt")[[1]]
+pet <- read.table("usgs_pet.txt")[[1]]
+boxplot(data.frame(evap, pet))
+
+plot(evap, type = "l")
+lines(pet, col = "red")
+legend("topleft", legend = c("evap", "pet"), lty = c(1, 1), col = c("black", "red"), bty = "n")
+```
+
+![](images/evap-pet-boxplots.png){width="75%" fig-align="center"}
+
+![](images/evap-pet-time-series.png){width="75%" fig-align="center"}
+
+Overall, EVAP data is greater than PET data.
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# USGS streamflow data {.unnumbered #sec-usgs-streamflow-data}
+
+## Downloading streamflow data
+
+Since we used the USGS gauge 02331600 for watershed delineation, download its daily streamflow data from January 1, 2010 to December 31, 2020. Using [`tmod.usgs`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/scripts/tmod.usgs), create [`obs.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs.txt).
+
+```bash
+tmod.usgs site_no=02331600 start_date=2010-01-01 end_date=2020-12-31 output=obs.txt
+```
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Calibration {.unnumbered #sec-calibration}
+
+## Splitting Data
+
+For calibration and validation, we will use data from 2010 to 2015 and 2015 to 2020, respectively.  
+The first year of each period will be dropped as a warm-up period.  
+We first need to know how many days are in the calibration period.
+
+```bash
+get_num_days.py 2010-01-01 2015-12-31
+```
+
+Extract the first 2,191 records from `input_evap.txt`, `input_pet.txt`, and `obs.txt`.
+
+```bash
+head -9 input_evap.txt > input_c_evap.txt
+tail +10 input_evap.txt | sed '2191q' >> input_c_evap.txt
+
+head -9 input_pet.txt > input_c_pet.txt
+tail +10 input_pet.txt | sed '2191q' >> input_c_pet.txt
+
+head -2 obs.txt > obs_c.txt
+tail +3 obs.txt | sed '2191q' >> obs_c.txt
+```
+
+We will use [`input_c_evap.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_c_evap.txt), [`input_c_pet.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_c_pet.txt), and [`obs_c.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs_c.txt) for calibration.
+
+For validation, we will skip to January 1, 2015.
+
+```bash
+get_num_days.py 2010-01-01 2014-12-31
+```
+
+Skip the first 1,826 records from `input_evap.txt`, `input_pet.txt`, and `obs.txt`:
+
+```bash
+head -9 input_evap.txt > input_v_evap.txt
+tail +1836 input_evap.txt >> input_v_evap.txt
+
+head -9 input_pet.txt > input_v_pet.txt
+tail +1836 input_pet.txt >> input_v_pet.txt
+
+head -2 obs.txt > obs_v.txt
+tail +1829 obs.txt >> obs_v.txt
+```
+
+We will use: [`input_v_evap.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_v_evap.txt), [`input_v_pet.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_v_pet.txt), and [`obs_v.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs_v.txt) for validation.
+
+## Configuration
+
+Open [`config.R`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/config.R).
+
+```r
+nruns <- 1000
+skip_c <- 365
+skip_v <- 365
+path_c <- list(params="params.txt",
+    	       topidxstats="topidxstats.txt",
+    	       input="input_c_pet.txt",
+    	       output="output_c.txt",
+    	       sim="sim",
+    	       obs="obs_c.txt")
+path_v <- list(params="params.txt",
+    	       topidxstats="topidxstats.txt",
+    	       input="input_v_pet.txt",
+    	       output="output_v.txt",
+    	       obs="obs_v.txt")
+
+calc_nse <- function(obs, sim, skip=0){
+	if(skip > 0){
+		obs <- obs[-(1:skip)]
+		sim <- sim[-(1:skip)]
+	}
+	1-sum((sim-obs)^2)/sum((mean(obs)-obs)^2)
+}
+
+calc_obj <- function(obs, sim, skip=0){
+	1-calc_nse(obs, sim, skip)
+}
+```
+
+- `nruns` determines how many times to run `r.topmodel` for calibration.
+- `skip_c` and `skip_v` are the numbers of time steps for warming up for calibration and validation, respectively.
+- `path_c` and `path_v` define paths to input and output files for calibration and validation, respectively.
+- Additionally, it defines a directory for simulation files (`sim`) and an observed streamflow file (`obs`).
+- `calc_nse` is the Nash-Sutcliffe Efficiency (NSE) function.
+- `calc_obj` is the objective function for minimization. The potential minimum value of `calc_obj` is 0, which corresponds to a perfect model.
+
+## Parametrization for ISPSO
+
+
+Like many other optimization algorithms, [`ISPSO`](https://idea.isnew.info/ispso.html) prefers normalized search spaces to reduce bias in certain parameter dimensions. The calibration script normalizes the parameter search space to $[0, 1]^D$, where $D$ is the number of model parameters. This normalized search space is expanded to the `r.topmodel` parameter ranges linearly mapping 0 and 1 to the minimum and maximum parameter limits, respectively.
+
+
+## Running Calibration
+
+Create or empty the `sim` directory, copy `params_init.txt` to `params.txt`, and run `calibrate.R`. For this workshop, we use the Nash-Sutcliffe efficiency (NSE) coefficient as the objective function, but you can change it to another one in config.R.
+
+```bash
+cp params_init.txt params.txt
+mkdir sim
+# or rm sim/*
+```
+
+In R, install required packages and run `calibrate.R`:
+
+```r
+install.packages(c("fOptions", "plotrix"))
+source("../scripts/calibrate.R")
+```
+
+
+In a separate R session, inspect the declining pattern of the objective function.
+
+```r
+repeat{
+    obj <- read.table("sim/obj.txt")[[1]]; plot(cummin(obj), ylim=c(0, 0.5), type="l")
+    cat(sprintf("obj=%f, NSE=%f\n", min(obj), 1-min(obj)))
+    Sys.sleep(1)
+}
+```
+
+### Cumulative Minimum of Objective Function
+
+![](images/cummin-obj.png)
+
+It took about 2 minutes to populate [the sim directory](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim). 
+
+What is your best NSE `1 - min(obj)`? I got 0.8035311. Let's validate this number.
+
+```r
+source("config.R")
+source("../scripts/run_rtopmodel.R")
+source("../scripts/read_write_rtopmodel.R")
+
+obj <- read.table("sim/obj.txt")[[1]]
+x <- read.table("sim/x.txt")
+
+best_idx <- which(obj == min(obj))
+best_x <- as.numeric(x[best_idx,])
+
+obs_c <- read.table("obs_c.txt")[[1]]
+sim_c <- run_rtopmodel_x(best_x, path_c)
+write.table(sim_c, "sim_c.txt", row.names=FALSE, col.names=FALSE)
+
+calc_nse(obs_c, sim_c, skip_c)
+```
+
+This step will create the final [`output_c.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/output_c.txt) and [`sim_c.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_c.txt).
+
+## Inspecting the Calibration Result
+
+In R, let's compare the observed and best simulated time series:
+
+```r
+old.par <- par(mar=c(5.1, 4.5, 4.1, 2.1))
+plot(obs_c[-(1:skip_c)], type="l", xlab="Time (days)", ylab=expression(Streamflow~(m^3/d)))
+lines(sim_c[-(1:skip_c)], col="red")
+legend("topleft", c("obs_c", "sim_c"), col=c("black", "red"), lty=c(1, 1), bty="n")
+
+plot(obs_c, sim_c)
+abline(0, 1, col="red")
+```
+
+![](images/obs-c-sim-c-time-series.png){.align-center width=75%}
+
+![](images/obs-c-sim-c.png){.align-center width=75%}
+
+We can see that the best model tends to overestimate baseflows. Overall, simulated hydrographs decline at a slower rate than observed ones. This behavior might be attributed to the use of the NSE as the objective function because the NSE puts more weights on peak flows. It might be the single-watershed configuration or the infiltration calculation in r.topmodel. Probably, it might be the structure of TOPMODEL itself that has failed to simulate baseflows. Let's see if r.topmodel has completely failed to simulate baseflows by plotting all 1,000 simulations. In the Generalized Likelihood Uncertainty Estimation (GLUE) framework (Beven and Binley, 2014), these simulations from the same model structure are called "models."
+
+```r
+sim_c <- c()
+for (i in 1:1000) {
+    file <- sprintf("sim/sim_c_%04d.txt", i)
+    sim_c <- rbind(sim_c, read.table(file)[[1]])
+}
+
+matplot(t(sim_c), type="l", col="green", lty=1)
+lines(obs_c, col="red")
+legend("topleft", legend=c("obs_c", "sim_c"), col=c("red", "green"), lty=1, bty="n")
+```
+
+![](images/obs-c-sim-c-ensemble.png){.align-center width=75%}
+
+From the above plot, the observed streamflow is mostly within the simulated range. If we consider these "models" from the same model structure of TOPMODEL as different models, constructing an ensemble model may be a good idea because no models are perfect, and they all come with uncertainty.
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Validation {.unnumbered #sec-validation}
+
+## Validating the calibrated model
+
+In R, let's validate our calibrated model using data from 2015 to 2020.
+
+```R
+obs_v <- read.table("obs_v.txt")[[1]]
+sim_v <- run_rtopmodel(path_v)
+write.table(sim_v, "sim_v.txt", row.names=FALSE, col.names=FALSE)
+
+calc_nse(obs_v, sim_v, skip_v)
+```
+This step will create [`output_v.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/output_v.txt) and [`sim_v.txt`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_v.txt).
+
+My NSE for validation is $0.7745305$, which is not bad. However, baseflows are still not properly simulated.
+
+![](images/obs-v-sim-v-time-series.png){.align-center width=75%}
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# Random Parameter Sampling {.unnumbered #sec-random-parameter-sampling}
+
+## Running `r.topmodel` with Random Parameter Values
+
+Without a priori knowledge about their distributions, we can assume that they follow a uniform distribution. If you want to take random parameter samples for Bayesian analysis under this assumption, you can use `config_random.R` and `sample_random.R`. This command will run `r.topmodel` 10,000 times and took about 20 minutes on my laptop, so you may just want to copy the [`sim_random`](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_random) directory to `run/sim_random` and skip to the next step for now.
+
+```bash
+mkdir sim_random
+../scripts/sample_random.R
+```
+
+---
+
+## Performance Comparison of Calibration and Random Sampling
+
+In R, let's calculate the minimum objective function value:
+
+```r
+obj_random <- read.table("sim_random/obj.txt")[[1]]
+print(1 - min(obj_random))
+```
+
+From this random sampling, I found an NSE of $0.7937873$, which is slightly lower than $0.8035311$ from our calibration. We can compare the performance of calibration and random sampling up to 1,000 runs if that matters.
+
+```r
+obj <- read.table("sim/obj.txt")[[1]]
+
+old.par <- par(mfrow=c(1,1), mar=c(5.1, 4.5, 4.1, 2.1))
+plot(cummin(obj), ylim=c(0, 0.5), type="l", xlab="Model runs")
+lines(cummin(obj_random[1:1000]), col="red")
+```
+
+This figure shows how fast calibration converges to the final state compared to random sampling.
+
+![](images/obj-obj-random.png){.align-center width=75%}
+
+---
+
+## Sensitivity Analysis
+
+Plot `x-obj` dotty plots to see how sensitive the objective function is to each parameter.
+
+```r
+source("../scripts/run_rtopmodel.R")
+
+x_random <- read.table("sim_random/x.txt")
+
+old.par <- par(mfrow=c(2,5), mar=c(4.1, 4.1, 1.1, 1.1))
+for (i in 1:10) plot(x_random[,i], obj_random, ylim=c(0,0.5), xlab=par.name[i], pch=20)
+```
+
+![](images/x-obj-random.png){.align-center width=75%}
+
+From these dotty plots, we can see that `lnTe`, `m`, and `Srmax` are sensitive parameters.
+
+Let's create a similar plot using the calibration result:
+
+```r
+x <- read.table("sim/x.txt")
+for (i in 1:10) plot(x[,i], obj, ylim=c(0,0.5), xlab=par.name[i], pch=20)
+```
+
+![](images/x-obj.png){.align-center width=75%}
+
+<!-- 
+    ################## NEW SECTION ##############
+-->
+
+# References {.unnumbered #sec-references}
+
+Beven, K., 1984. Infiltration into a Class of Vertically Non-Uniform Soils. Hydrological Sciences Journal 29 (4), 425-434. [doi:10.1080/02626668409490960](https://doi.org/10.1080/02626668409490960).
+
+Beven, K., Lamb, R., Quinn, P., Romanowicz, R., Freer, J., 1995. TOPMODEL. In: Singh, V.P. (Ed.), Computer Models of Watershed Hydrology. Water Resources Publications, pp. 627-668.
+
+Beven, K., Binley, A., 2014. GLUE - 20 Years On. *Hydrological Processes* 28 (24), 5897-5918. [https://doi.org/10.1002/hyp.10082](https://doi.org/10.1002/hyp.10082)
+
+Buytaert, W., 2009. TOPMODEL. <https://source.ggy.bris.ac.uk/wiki/Topmodel>, accessed on November 9, 2015.
+
+Cho, H., 2000. GIS Hydrological Modeling System by Using Programming Interface of GRASS. Master’s Thesis, Department of Civil Engineering, Kyungpook National University, South Korea.
+
+Cho, H., Kim, D., Olivera, F., Guikema, S. D., 2011. Enhanced Speciation in Particle Swarm Optimization for Multi-Modal Problems. European Journal of Operational Research 213 (1), 15-23. [doi:10.1016/j.ejor.2011.02.026](https://doi.org/10.1016/j.ejor.2011.02.026).
+
+Cho, H., 2020. A Recursive Algorithm for Calculating the Longest Flow Path and Its Iterative Implementation. Environmental Modelling & Software 131, 104774. [doi:10.1016/j.envsoft.2020.104774](https://doi.org/10.1016/j.envsoft.2020.104774).
+
+Cho, H., Park, J., Kim, D., 2019. Evaluation of Four GLUE Likelihood Measures and Behavior of Large Parameter Samples in ISPSO-GLUE for TOPMODEL. Water 11 (3), 447. [doi:10.3390/w11030447](https://doi.org/10.3390/w11030447).
+
+Conrad, O., 2003. SAGA-GIS Module Library Documentation (v2.1.3) Module TOPMODEL. <http://www.saga-gis.org/saga_module_doc/2.1.3/sim_hydrology_2.html>, accessed on November 9, 2015.
+
+Li, X., 2004. Adaptively Choosing Neighbourhood Bests Using Species in a Particle Swarm Optimizer for Multimodal Function Optimization. Lecture Notes in Computer Science 3102, 105-166. [doi:10.1007/978-3-540-24854-5_10](https://doi.org/10.1007/978-3-540-24854-5_10).
+
+Neteler, M., Bowman, M. H., Landa, M., Metz, M., 2012. GRASS GIS: A Multi-Purpose Open Source GIS. Environmental Modelling & Software 31, 124-130. [doi:10.1016/j.envsoft.2011.11.014](https://doi.org/10.1016/j.envsoft.2011.11.014).
+
+## Technical References {.unnumbered #sec-technical-references}
+
+### `read_write_rtopmodel.R`
+
+- **`write_rtopmodel_params()`**: Updates an existing `r.topmodel` parameters file. NULL parameters are not updated.
+
+  - file="params.txt"
+  - qs0=NULL
+  - lnTe=NULL
+  - m=NULL
+  - Sr0=NULL
+  - Srmax=NULL
+  - td=NULL
+  - vch=NULL
+  - vr=NULL
+  - infex=NULL
+  - K0=NULL
+  - psi=NULL
+  - dtheta=NULL
+
+- **`write_rtopmodel_x()`**: Updates an existing `r.topmodel` parameters file using parameter values normalized to [0, 1].
+
+  - file="params.txt"
+  - x: All parameter values need to be passed in the order of parameter arguments for `write_rtopmodel_params()`.
+
+- **`read_rtopmodel_params`**: Reads parameter values from an existing `r.topmodel` parameters file and returns them as a list.
+
+  - file="params.txt"
+
+- **`read_rtopmodel_params_from_lnes()`**: Reads parameter values from lines read by `readLine()`.
+  
+  - lines
+
+- **`read_rtopmodel_output()`**: Reads a variable from an `r.topmodel` output file.
+
+  - file="output.txt"
+  - name="Qt": Either "Qt", "qt", "qo", "qs", "qv", "S_mean", "f", or "fex".
+
+---
+
+### `run_rtopmodel.R`
+
+- **`par.name`**: Parameter names.
+- **`par.dim`**: Number of parameters.
+- **`par.min`**: Lower limits of parameter values.
+- **`par.max`**: Upper limits of parameter values.
+
+- **`run_rtopmodel_x()`**: Runs `r.topmodel` with parameter values normalized to [0, 1].
+
+  - x: All parameter values need to be passed in the order of parameter arguments for `write_rtopmodel_params()`.
+  - path=list(params="params.txt", topidxstats="topidxstats.txt", input="input.txt", output="output.txt", sim="sim")
+  - append=FALSE: If TRUE, `x` will be appended to `sim/x.txt` and unnormalized parameter values to `sim/parval.txt`.
+
+- **`run_rtopmodel()`**: Runs `r.topmodel` with the current parameters file.
+
+  - path=list(params="params.txt", topidxstats="topidxstats.txt", input="input.txt", output="output.txt", sim="sim")
