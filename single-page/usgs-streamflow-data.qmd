@@ -1,4 +1,4 @@
-# USGS streamflow data {.unnumbered}
+# USGS streamflow data {.unnumbered #sec-usgs-streamflow-data}
 
 ## Downloading streamflow data
 

@@ -1,4 +1,4 @@
-# Watershed {.unnumbered}
+# Watershed {.unnumbered #sec-watershed}
 
 Let's check the coordinate reference system (CRS) of the DEM.
 

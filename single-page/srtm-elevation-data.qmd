@@ -1,4 +1,4 @@
-# SRTM elevation data {.unnumbered}
+# SRTM elevation data {.unnumbered #sec-srtm-elevation-data}
 
 ## Finding a streamflow gauge
 

@@ -1,4 +1,4 @@
-# Data directory {.unnumbered}
+# Data directory {.unnumbered #sec-data-directory}
 
 In [the workshop GitHub repository](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop), I included the data directory that contains all the inputs and outputs for your convenience.
 
@@ -11,25 +11,25 @@ Since GitHub does not support files larger than 100 MB, I tried [Git Large File 
 
 ## Directory structure
 
-### [SRTM Elevation Data](data-directory.qmd)
+### [SRTM Elevation Data](#sec-srtm-elevation-data)
 
 - [streamstats_02331600_watershed.zip](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/streamstats_02331600_watershed.zip)
 - [n34_w084_1arc_v3.tif](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/n34_w084_1arc_v3.tif)
 
-### [Watershed](watershed.qmd)
+### [Watershed](#sec-watershed)
 
 - [grassdata.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/grassdata.zip)
 - [NHD_H_0313_HU4_Shape.zip](https://workshop.isnew.info/nsf-pose-2025-r.topmodel/data/NHD_H_0313_HU4_Shape.zip)
 
-### [r.topmodel Parameters](r.topmodel-parameters.qmd)
+### [r.topmodel Parameters](#sec-r.topmodel-parameters)
 
 - [params_init.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/params_init.txt)
 
-### [r.topmodel Topidxstats](r.topmodel-topidxstats.qmd)
+### [r.topmodel Topidxstats](#sec-r.topmodel-topidxstats)
 
 - [topidxstats.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/topidxstats.txt)
 
-### [NCDC Weather Data](ncdc-weather-data.qmd)
+### [NCDC Weather Data](#sec-ncdc-weather-data)
 
 - [ghcnd-inventory.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ghcnd-inventory.txt)
 - [data.db](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/data.db)
@@ -37,7 +37,7 @@ Since GitHub does not support files larger than 100 MB, I tried [Git Large File 
 - [ncdc_evap_stations.json](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_evap_stations.json)
 - [input_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_evap.txt)
 
-### [USGS Potential Evapotranspiration Data](usgs-potential-evapotranspiration-data.qmd)
+### [USGS Potential Evapotranspiration Data](#sec-usgs-potential-evapotranspiration-data)
 
 - [usgs_pet](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/usgs_pet)
 - [usgs_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/usgs_pet.txt)
@@ -45,11 +45,11 @@ Since GitHub does not support files larger than 100 MB, I tried [Git Large File 
 - [ncdc_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/ncdc_evap.txt)
 - [input_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_pet.txt)
 
-### [USGS Streamflow Data](usgs-streamflow-data.qmd)
+### [USGS Streamflow Data](#sec-usgs-streamflow-data)
 
 - [obs.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/obs.txt)
 
-### [Calibration](calibration.qmd)
+### [Calibration](#sec-calibration)
 
 - [input_c_evap.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_c_evap.txt)
 - [input_c_pet.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/input_c_pet.txt)
@@ -63,12 +63,12 @@ Since GitHub does not support files larger than 100 MB, I tried [Git Large File 
 - [output_c.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/output_c.txt)
 - [sim_c.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_c.txt)
 
-### [Validation](validation.qmd)
+### [Validation](#sec-validation)
 
 - [output_v.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/output_v.txt)
 - [sim_v.txt](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_v.txt)
 
-### [Random Parameter Sampling](random-parameter-sampling.qmd)
+### [Random Parameter Sampling](#sec-random-parameter-sampling)
 
 - [config_random.R](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/config_random.R)
 - [sim_random](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim_random)
