@@ -2,7 +2,7 @@
 
 $primary: #3EAF7C !default;
 $font-size-root: 18px !default;
-
+$link-decoration: none !default;
 /*-- scss:rules --*/
 
 .sidebar-title {
@@ -27,4 +27,8 @@ img {
 
 #title-block-header.quarto-title-block.default .quarto-title h1.title {
   margin-bottom: 0.5rem;
+}
+
+li > p:has(+ul) {
+  margin-bottom: 0;
 }

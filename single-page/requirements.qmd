@@ -5,18 +5,12 @@
 - Operating systems: [Linux](https://www.kernel.org/), [macOS](https://www.apple.com/macos/), [Windows](https://www.microsoft.com/windows/)
 - [Git](https://git-scm.com/)
 - [GRASS GIS](https://grass.osgeo.org/)
-
   - [r.accumulate](https://grass.osgeo.org/grass-stable/manuals/addons/r.accumulate.html) to be installed using [g.extension](https://grass.osgeo.org/grass-stable/manuals/g.extension.html)
-
 - [Python 3](https://www.python.org/) installed with GRASS GIS
-
   - [ProjPicker](https://projpicker.readthedocs.io/)
-
 - [R](https://www.r-project.org/)
-
   - [fOptions package](https://cran.r-project.org/web/packages/fOptions/index.html)
   - [plotrix package](https://cran.r-project.org/web/packages/plotrix/index.html)
-
 - [Workshop Python/R scripts](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/tree/master/scripts)
 
 ## GitHub repository for the workshop
