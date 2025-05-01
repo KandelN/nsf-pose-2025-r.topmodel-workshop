@@ -26,11 +26,11 @@ execute:
 <!-- # Physically-based hydrologic modeling using GRASS GIS r.topmodel {.unnumbered} -->
 # Welcome {.unnumbered #sec-index}
 
-![](images/NSF_grant_announcement.png){align=center width=75%}
+![](images/NSF_grant_announcement.webp){align=center width=75%}
 
 This workshop will introduce r.topmodel (Cho 2000), the GRASS GIS module for a physically-based hydrologic model called TOPMODEL (Beven 1984). r.topmodel is a C implementation of the original FORTRAN code by Beven and tightly integrated with GRASS GIS. We will discuss step-by-step instructions for preparing input data for r.topmodel, running it, calibrating its model parameters, and, finally, post-processing the model outputs.
 
-![](images/subbasins-for-r.topmodel.png){.align-center width=75%}
+![](images/subbasins-for-r.topmodel.webp){.align-center width=75%}
 
 ## Abstract
 
@@ -41,7 +41,7 @@ The Topography Model (TOPMODEL) is "a set of conceptual tools that can be used t
 ::: columns
 ::: {.column width="25%"}
 
-![](images/portrait.png){width=80%}
+![](images/portrait.webp){width=80%}
 :::
 
 ::: {.column width="75%"}
@@ -255,27 +255,27 @@ Since GitHub does not support files larger than 100 MB, I tried [Git Large File 
 
 For this workshop, we need to find a watershed that has a streamflow gauge at its outlet for calibration purposes. Go to [StreamStats](https://streamstats.usgs.gov/ss/) and search for `02331600`, which is the name of a United States Geological Survey (USGS) streamflow gauge.
 
-![](images/streamstats-02331600-gauge.png){.align-center width=75%}
+![](images/streamstats-02331600-gauge.webp){.align-center width=75%}
 
 Copy the latitude and longitude to a text editor. We will need this information later.
 
 Select Georgia and delineate a watershed at just the downstream cell of the gauge. Download the watershed Shapefile as [streamstats_02331600_watershed.zip](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/streamstats_02331600_watershed.zip).
 
-![](images/streamstats-02331600-watershed.png){.align-center width=75%}
+![](images/streamstats-02331600-watershed.webp){.align-center width=75%}
 
 ## Downloading the SRTM DEM
 
 Go to [EarthExplorer](https://earthexplorer.usgs.gov/) and zoom to the area of the watershed above. Draw a polygon that entirely covers the watershed.
 
-![](images/earthexplorer-search-criteria.png){.align-center width=75%}
+![](images/earthexplorer-search-criteria.webp){.align-center width=75%}
 
 We will use the [SRTM DEM](https://www2.jpl.nasa.gov/srtm/). Click Data Sets and search for "SRTM 1 arc-second".
 
-![](images/earthexplorer-data-sets.png){.align-center width=75%}
+![](images/earthexplorer-data-sets.webp){.align-center width=75%}
 
 Click Results and download [the GeoTIFF file](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/n34_w084_1arc_v3.tif).
 
-![](images/earthexplorer-results.png){.align-center width=75%}
+![](images/earthexplorer-results.webp){.align-center width=75%}
 
 <!-- 
     ################## NEW SECTION ##############
@@ -324,11 +324,11 @@ projpicker -g
 
 Zoom to the area of the watershed using Ctrl + dragging and draw a bounding polygon using left-clicks (double left-click to complete drawing). Refer to the Help tab. Click Query and search for "projected; nad83; us foot".
 
-![](images/projpicker-watershed.png){.align-center width=75%}
+![](images/projpicker-watershed.webp){.align-center width=75%}
 
 Select the first CRS. We will use [EPSG:2240](https://epsg.io/2240).
 
-![](images/projpicker-epsg2240.png){.align-center width=75%}
+![](images/projpicker-epsg2240.webp){.align-center width=75%}
 
 ## Importing the DEM
 
@@ -343,7 +343,7 @@ g.region raster=n34_w084_1arc_v3
 # display n34_w084_1arc_v3
 ```
 
-![](images/n34-w084-1arc-v3.png){.align-center width=75%}
+![](images/n34-w084-1arc-v3.webp){.align-center width=75%}
 
 ### Prepopulated location
 
@@ -367,17 +367,17 @@ m.proj -i coordinates=-83.622775,34.5407222 | v.in.ascii input=- output=outlet
 # display outlet
 ```
 
-![](images/outlet.png){.align-center width=75%}
+![](images/outlet.webp){.align-center width=75%}
 
 ## Downloading stream data for DEM burning
 
 Go to [the National Map Download Viewer](https://apps.nationalmap.gov/downloader/), zoom to the watershed, and draw an extent polygon. Check Hydrography, National Hydrography Dataset (NHD), HU-4 Subregion, and Shapefile.
 
-![](images/nationalmap-search.png){.align-center width=75%}
+![](images/nationalmap-search.webp){.align-center width=75%}
 
 Download [NHD_H_0313_HU4_Shape.zip](https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/HU4/HighResolution/Shape/NHD_H_0313_HU4_Shape.zip).
 
-![](images/nationalmap-download.png){.align-center width=75%}
+![](images/nationalmap-download.webp){.align-center width=75%}
 
 ```bash
 curl -o NHD_H_0313_HU4_Shape.zip https://prd-tnm.s3.amazonaws.com/StagedProducts/Hydrography/NHD/HU4/HighResolution/Shape/NHD_H_0313_HU4_Shape.zip
@@ -414,7 +414,7 @@ v.category input=outlet_snapped_end option=chlayer layer=2,1 output=outlet_snapp
 # display outlet_snapped
 ```
 
-![](images/outlet-snapped.png){.align-center width=75%}
+![](images/outlet-snapped.webp){.align-center width=75%}
 
 Read the stream category at the outlet.
 
@@ -467,7 +467,7 @@ v.extract input=streams_net where=comp=17 output=streams_watershed
 # display streams_watershed
 ```
 
-![](images/streams-watershed.png){.align-center width=75%}
+![](images/streams-watershed.webp){.align-center width=75%}
 
 Let's set the computational region that is big enough to contain the watershed. A buffer of 9,000 ft (100 times the 90-ft resolution) is used.
 
@@ -505,7 +505,7 @@ r.to.vect input=watershed type=area output=watershed
 # display watershed and lfp vectors
 ```
 
-![](images/watershed-lfp.png){.align-center width=75%}
+![](images/watershed-lfp.webp){.align-center width=75%}
 
 Import the watershed from StreamStats and compare both.
 
@@ -516,7 +516,7 @@ v.overlay ainput=watershed binput=watershed_streamstats operator=xor output=wate
 # display watershed_diff
 ```
 
-![](images/watershed-diff.png){.align-center width=75%}
+![](images/watershed-diff.webp){.align-center width=75%}
 
 <!-- 
     ################## NEW SECTION ##############
@@ -542,7 +542,7 @@ r.mapcalc expression="topidx_watershed=if(isnull(watershed),null(),topidx)"
 # display topidx_watershed
 ```
 
-![Topidx Watershed](images/topidx-watershed.png){.align-center width=75%}
+![Topidx Watershed](images/topidx-watershed.webp){.align-center width=75%}
 
 <!-- 
     ################## NEW SECTION ##############
@@ -740,11 +740,11 @@ r.accumulate direction=fdir outlet=suboutlets subwatershed=subwatersheds
 # display subwatersheds and suboutlets
 ```
 
-![Subwatersheds and Suboutlets](images/subwatersheds-suboutlets.png){.align-center width=75%}
+![Subwatersheds and Suboutlets](images/subwatersheds-suboutlets.webp){.align-center width=75%}
 
 The blue area on the left side of the watershed does not drain into any of the nine suboutlets, but its size is almost half. This watershed really has two major subwatersheds near its outlet and the longest flow path (blue line) happens to be in just one major subwatershed. This figure overlays the streams vector.
 
-![Subwatersheds Streams Watershed](images/subwatersheds-streams-watershed.png){.align-center width=75%}
+![Subwatersheds Streams Watershed](images/subwatersheds-streams-watershed.webp){.align-center width=75%}
 
 In this case, it is advisable to create a multi-subwatershed model with two separate r.topmodel models. However, we will finish this single watershed case anyway.
 
@@ -1015,7 +1015,7 @@ v.select ainput=ncdc_evap_stations binput=evap_stations_voronoi output=evap_stat
 # display watershed, prcp_stations, and evap_stations
 ```
 
-![Watershed Weather Stations](images/watershed-weather-stations.png){.align-center width=75%}
+![Watershed Weather Stations](images/watershed-weather-stations.webp){.align-center width=75%}
 
 Blue is `prcp_stations` and orange is `evap_stations`.
 
@@ -1036,7 +1036,7 @@ v.clip input=evap_stations_voronoi clip=watershed output=evap_stations_voronoi_w
 # display prcp_stations_voronoi_watershed
 ```
 
-![Prcp Stations Voronoi Watershed](images/prcp-stations-voronoi-watershed.png){.align-center width=75%}
+![Prcp Stations Voronoi Watershed](images/prcp-stations-voronoi-watershed.webp){.align-center width=75%}
 
 # Downloading weather data
 
@@ -1116,9 +1116,9 @@ lines(pet, col = "red")
 legend("topleft", legend = c("evap", "pet"), lty = c(1, 1), col = c("black", "red"), bty = "n")
 ```
 
-![](images/evap-pet-boxplots.png){width="75%" fig-align="center"}
+![](images/evap-pet-boxplots.webp){width="75%" fig-align="center"}
 
-![](images/evap-pet-time-series.png){width="75%" fig-align="center"}
+![](images/evap-pet-time-series.webp){width="75%" fig-align="center"}
 
 Overall, EVAP data is greater than PET data.
 
@@ -1264,7 +1264,7 @@ repeat{
 
 ### Cumulative Minimum of Objective Function
 
-![](images/cummin-obj.png)
+![](images/cummin-obj.webp)
 
 It took about 2 minutes to populate [the sim directory](https://github.com/HuidaeCho/nsf-pose-2025-r.topmodel-workshop/raw/master/data/sim). 
 
@@ -1304,9 +1304,9 @@ plot(obs_c, sim_c)
 abline(0, 1, col="red")
 ```
 
-![](images/obs-c-sim-c-time-series.png){.align-center width=75%}
+![](images/obs-c-sim-c-time-series.webp){.align-center width=75%}
 
-![](images/obs-c-sim-c.png){.align-center width=75%}
+![](images/obs-c-sim-c.webp){.align-center width=75%}
 
 We can see that the best model tends to overestimate baseflows. Overall, simulated hydrographs decline at a slower rate than observed ones. This behavior might be attributed to the use of the NSE as the objective function because the NSE puts more weights on peak flows. It might be the single-watershed configuration or the infiltration calculation in r.topmodel. Probably, it might be the structure of TOPMODEL itself that has failed to simulate baseflows. Let's see if r.topmodel has completely failed to simulate baseflows by plotting all 1,000 simulations. In the Generalized Likelihood Uncertainty Estimation (GLUE) framework (Beven and Binley, 2014), these simulations from the same model structure are called "models."
 
@@ -1322,7 +1322,7 @@ lines(obs_c, col="red")
 legend("topleft", legend=c("obs_c", "sim_c"), col=c("red", "green"), lty=1, bty="n")
 ```
 
-![](images/obs-c-sim-c-ensemble.png){.align-center width=75%}
+![](images/obs-c-sim-c-ensemble.webp){.align-center width=75%}
 
 From the above plot, the observed streamflow is mostly within the simulated range. If we consider these "models" from the same model structure of TOPMODEL as different models, constructing an ensemble model may be a good idea because no models are perfect, and they all come with uncertainty.
 
@@ -1347,7 +1347,7 @@ This step will create [`output_v.txt`](https://github.com/HuidaeCho/nsf-pose-202
 
 My NSE for validation is $0.7745305$, which is not bad. However, baseflows are still not properly simulated.
 
-![](images/obs-v-sim-v-time-series.png){.align-center width=75%}
+![](images/obs-v-sim-v-time-series.webp){.align-center width=75%}
 
 <!-- 
     ################## NEW SECTION ##############
@@ -1387,7 +1387,7 @@ lines(cummin(obj_random[1:1000]), col="red")
 
 This figure shows how fast calibration converges to the final state compared to random sampling.
 
-![](images/obj-obj-random.png){.align-center width=75%}
+![](images/obj-obj-random.webp){.align-center width=75%}
 
 ---
 
@@ -1404,7 +1404,7 @@ old.par <- par(mfrow=c(2,5), mar=c(4.1, 4.1, 1.1, 1.1))
 for (i in 1:10) plot(x_random[,i], obj_random, ylim=c(0,0.5), xlab=par.name[i], pch=20)
 ```
 
-![](images/x-obj-random.png){.align-center width=75%}
+![](images/x-obj-random.webp){.align-center width=75%}
 
 From these dotty plots, we can see that `lnTe`, `m`, and `Srmax` are sensitive parameters.
 
@@ -1415,7 +1415,7 @@ x <- read.table("sim/x.txt")
 for (i in 1:10) plot(x[,i], obj, ylim=c(0,0.5), xlab=par.name[i], pch=20)
 ```
 
-![](images/x-obj.png){.align-center width=75%}
+![](images/x-obj.webp){.align-center width=75%}
 
 <!-- 
     ################## NEW SECTION ##############
